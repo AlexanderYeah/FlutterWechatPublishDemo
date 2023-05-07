@@ -1,7 +1,9 @@
 import 'dart:ffi';
 
+import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_wechat_publish_demo/widgets/camera.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 class PublishPage extends StatefulWidget {
@@ -270,13 +272,26 @@ class _PublishPageState extends State<PublishPage> {
   _bulidAddButton(double width) {
     return GestureDetector(
       onTap: () async {
-        final List<AssetEntity>? result = await AssetPicker.pickAssets(context,
-            pickerConfig: AssetPickerConfig(
-                selectedAssets: _selectedAssets, maxAssets: _maxAssets));
-        //
-        setState(() {
-          _selectedAssets = result ?? [];
-        });
+        // final asset = await _onTakePhoto(context);
+        // if (asset == null) {
+        //   return;
+        // }
+        // setState(() {
+        //   _selectedAssets.add(asset);
+        // });
+        final asset = await _onTakeVideo(context);
+        if (asset == null) {
+          return;
+        }
+        print("object");
+
+        // final List<AssetEntity>? result = await AssetPicker.pickAssets(context,
+        //     pickerConfig: AssetPickerConfig(
+        //         selectedAssets: _selectedAssets, maxAssets: _maxAssets));
+        // //
+        // setState(() {
+        //   _selectedAssets = result ?? [];
+        // });
       },
       child: Container(
         decoration: BoxDecoration(border: Border.all(color: Colors.black45)),
@@ -289,7 +304,33 @@ class _PublishPageState extends State<PublishPage> {
       ),
     );
   }
+
+  // 拍照的动作
+  Future<AssetEntity?> _onTakePhoto(BuildContext context) async {
+    final result = await Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) {
+        return CameraPage(CaptureMode.photo, null);
+      },
+    ));
+
+    return result;
+  }
+
+  // 拍摄视频的动作
+  Future<AssetEntity?> _onTakeVideo(BuildContext context) async {
+    final result = await Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) {
+        return CameraPage(
+          CaptureMode.video,
+          Duration(seconds: 30),
+        );
+      },
+    ));
+    return result;
+  }
 }
+
+
 
 //Draggable 可拖拽组件
 
