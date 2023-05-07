@@ -16,6 +16,11 @@ class _PublishPageState extends State<PublishPage> {
   bool _isDragNow = false;
   bool _isWillDelete = false;
 
+  // 是否将要排序
+  bool _isWillOrder = false;
+  // 被拖拽的id
+  String _targetAssetId = "";
+
   // 已选中的图片列表
   List<AssetEntity> _selectedAssets = [];
   int _maxAssets = 9;
@@ -76,7 +81,7 @@ class _PublishPageState extends State<PublishPage> {
       padding: EdgeInsets.all(8),
       child: LayoutBuilder(
         builder: (BuildContext ctx, BoxConstraints constraints) {
-          final double width = (constraints.maxWidth - 8 * 2) / 3;
+          final double width = (constraints.maxWidth - 8 * 2 - 0.5 * 3) / 3;
           return Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -98,15 +103,66 @@ class _PublishPageState extends State<PublishPage> {
     return Draggable(
         // 可拖动的对象将拖放的数据
         data: asset,
-        child: Container(
-          child: AssetEntityImage(
-            asset,
-            width: width,
-            height: width,
-            fit: BoxFit.cover,
-            isOriginal: false,
-          ),
-        ),
+        child: DragTarget<AssetEntity>(
+            // 将要被接受的时候
+            onWillAccept: (data) {
+          if (data?.id == asset.id) {
+            // 排除自己
+            return false;
+          }
+          // 否则的话 更新页面
+          setState(() {
+            _isWillOrder = true;
+            _targetAssetId = asset.id;
+          });
+          return true;
+        }, onAccept: (data) {
+          // 当前元素的位置
+          int targetIndex = _selectedAssets.indexWhere((element) {
+            return element.id == asset.id;
+          });
+          // 删除原来的
+          _selectedAssets.removeWhere((element) {
+            return element.id == data.id;
+          });
+          // 插入到目标的前面
+          _selectedAssets.insert(targetIndex, data);
+
+          setState(() {
+            _isWillOrder = false;
+            _targetAssetId = "";
+          });
+        }, onLeave: (data) {
+          setState(() {
+            _isWillOrder = false;
+            _targetAssetId = "";
+          });
+        }, builder: (context, candidateData, rejectedData) {
+          return GestureDetector(
+            onTap: () {
+              // 点击的实现
+              print("点击click");
+            },
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              padding: (_isWillOrder && _targetAssetId == asset.id)
+                  ? EdgeInsets.zero
+                  : const EdgeInsets.all(0),
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3),
+                  border: (_isWillOrder && _targetAssetId == asset.id)
+                      ? Border.all(color: Colors.blueAccent, width: 0.5)
+                      : null),
+              child: AssetEntityImage(
+                asset,
+                width: width,
+                height: width,
+                fit: BoxFit.cover,
+                isOriginal: false,
+              ),
+            ),
+          );
+        }),
         // 开始拖动的时候调用
         onDragStarted: () {
           setState(() {
@@ -116,12 +172,14 @@ class _PublishPageState extends State<PublishPage> {
         // 当Draggable 被放置时候调用
         onDragEnd: (details) {
           _isDragNow = false;
+          _isWillOrder = false;
         },
         // 当Draggable 被放置但未被DragTarget 接收时候调用
         onDraggableCanceled: (velocity, offset) {
           // print("object");
           setState(() {
             _isDragNow = false;
+            _isWillOrder = false;
           });
         },
 
@@ -164,6 +222,7 @@ class _PublishPageState extends State<PublishPage> {
         });
         return true;
       },
+
       // 当被拖动的到该目标上的给定数据放置时候调用
       onAccept: (data) {
         // 删除数据
